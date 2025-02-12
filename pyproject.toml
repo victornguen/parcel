@@ -1,5 +1,5 @@
 [project]
-name = "parcel"
+name = "parcel_share"
 version = "0.1.0"
 description = "tool for p2p file sharing"
 authors = [
