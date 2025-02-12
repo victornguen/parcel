@@ -1,0 +1,19 @@
+[project]
+name = "parcel"
+version = "0.1.0"
+description = "tool for p2p file sharing"
+authors = [
+    {name = "Victor Nguen",email = "nguen-victor@yandex.ru"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "iroh (>=0.31.0,<0.32.0)",
+    "anyio (>=4.8.0,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
