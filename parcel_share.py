@@ -1,13 +1,11 @@
 import asyncio
-
-import click
+import functools as ft
 import os
 
+import click
 import iroh
 
 import p2p
-import sys
-import functools as ft
 
 
 def async_cmd(func):
@@ -55,13 +53,12 @@ async def send_file_or_directory(path):
         # await node.share_blob(path, in_place=True)
         await node.share_blob_in_mem(path)
         pass
-    # Example: iroh.send(path)
 
 
 async def receive_file_or_directory(ticket, output_dir='.'):
     node = p2p.ParcelNode(persistent=False)
     await node.start()
-    await node.receive_blob_in_mem(ticket, output_dir)
+    await node.receive_blob(ticket, output_dir)
     pass
 
 

@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from iroh import BlobTicket, AddrInfoOptions, SetTagOption, \
-    WrapOption, AddProgressType, DownloadProgressType, BlobExportFormat, BlobExportMode
+    WrapOption, AddProgressType, DownloadProgressType
 from iroh import Iroh, NodeOptions
 
 
@@ -62,16 +62,11 @@ class ParcelNode:
         wrap = WrapOption.wrap(filename)
         cb = AddCallback()
         await self.node.blobs().add_from_path(path, in_place, tag, wrap, cb)
-        # author = await self._author()
-        print("Blob format: ", cb.format)
+        # print("Blob format: ", cb.format)
         ticket = await self.node.blobs().share(cb.collection_hash, cb.format, AddrInfoOptions.RELAY_AND_ADDRESSES)
-        # key = iroh.path_to_key(path, None, None)
-        # with open(path, 'rb') as f:
-        #     await blob.set_bytes(author, key, f.read())
 
-        blobs = await self.node.blobs().list()
-        print(f"blobs: {", ".join(str(h) for h in blobs)}")
-
+        # blobs = await self.node.blobs().list()
+        # print(f"blobs: {", ".join(str(h) for h in blobs)}")
 
         print(f"🚀 Sharing data - keep this running until transfer completes!")
         print(f"🔑 Share this ticket:\n{ticket}")
@@ -91,50 +86,29 @@ class ParcelNode:
 
     async def receive_blob(self, ticket_str, output_dir):
         class DownloadCallback:
-            async def progress(self, progress_event):
-                match progress_event.type():
-                    case DownloadProgressType.ALL_DONE:
-                        written = progress_event.as_all_done().bytes_written
-                        print(f"done downloading, written {written} bytes")
-                    case DownloadProgressType.ABORT:
-                        abort_event = progress_event.as_abort()
-                        print(abort_event.error)
-                        raise Exception(abort_event.error)
-        cb = DownloadCallback()
-        ticket = BlobTicket(ticket_str)
-        print("Ticket hash: ", ticket.hash())
-        await self.node.blobs().download(ticket.hash(), opts=ticket.as_download_options(), cb=cb)
-        # author = await self._author()
-        blob_collections = await self.node.blobs().list_collections()
-        blobs = await self.node.blobs().list()
-        print(f"blob_collections: {', '.join((str(c) for c in blob_collections))}")
-        print(f"blobs: {', '.join(str(b) for b in blobs)}")
-        await self.node.blobs().export(ticket.hash(), output_dir,  BlobExportFormat.COLLECTION,  BlobExportMode.COPY)
-        # key = iroh.path_to_key(output_dir, None, None)
-        # with open(output_dir, 'wb') as f:
-        #     f.write(await blob.get_bytes(author, key))
-        # print(f"\n✅ Download complete! Saved to: {output_dir}")
+            self.written = 0
+            self.total = 0
 
-    async def receive_blob_in_mem(self, ticket_str, output_dir):
-        class DownloadCallback:
             async def progress(self, progress_event):
                 match progress_event.type():
                     case DownloadProgressType.ALL_DONE:
-                        written = progress_event.as_all_done().bytes_written
-                        print(f"done downloading, written {written} bytes")
+                        human_readable_size = f"{self.total / (1024 ** 2):.2f} MB" if self.total >= 1024 ** 2 else f"{self.total / 1024:.2f} KB"
+                        print(f"\ndone downloading, written {human_readable_size}")
+                    case DownloadProgressType.PROGRESS:
+                        bytes_offset = progress_event.as_progress().offset
+                        progress = int((bytes_offset / self.total) * 100) + 1
+                        bar = '#' * (progress // 2) + '-' * (50 - (progress // 2))
+                        print(f"[{bar}] {progress}%", end='\r')
+                    case DownloadProgressType.FOUND:
+                        self.total = progress_event.as_found().size
                     case DownloadProgressType.ABORT:
                         abort_event = progress_event.as_abort()
                         print(abort_event.error)
                         raise Exception(abort_event.error)
+
         cb = DownloadCallback()
         ticket = BlobTicket(ticket_str)
-        print("Ticket hash: ", ticket.hash())
         await self.node.blobs().download(ticket.hash(), opts=ticket.as_download_options(), cb=cb)
-        # author = await self._author()
-        blob_collections = await self.node.blobs().list_collections()
-        blobs = await self.node.blobs().list()
-        print(f"blob_collections: {', '.join((str(c) for c in blob_collections))}")
-        print(f"blobs: {', '.join(str(b) for b in blobs)}")
         content = await self.node.blobs().read_to_bytes(ticket.hash())
         with open(output_dir, '+wb') as f:
             f.write(content)

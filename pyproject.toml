@@ -1,6 +1,6 @@
 [project]
 name = "parcel_share"
-version = "0.1.0"
+version = "0.0.1"
 description = "tool for p2p file sharing"
 authors = [
     {name = "Victor Nguen",email = "nguen-victor@yandex.ru"}
